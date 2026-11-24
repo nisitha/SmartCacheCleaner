@@ -1,0 +1,279 @@
+@import "tailwindcss";
+
+:root,
+[data-theme="dark"] {
+  --bg-sidebar: rgba(15, 18, 25, 0.72);
+  --bg-master: rgba(16, 20, 29, 0.75);
+  --bg-canvas: rgba(13, 16, 21, 0.65);
+  --bg-card: rgba(18, 22, 31, 0.75);
+  --bg-card-hover: rgba(255, 255, 255, 0.05);
+  --bg-dock: rgba(13, 16, 21, 0.85);
+  --border-hairline: rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(255, 255, 255, 0.14);
+  --card-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 12px 32px -8px rgba(0, 0, 0, 0.55);
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --accent-primary: #38BDF8;
+  --accent-subtle: rgba(56, 189, 248, 0.10);
+  --accent-border: rgba(56, 189, 248, 0.35);
+  --hero-ambient: radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.14) 0%, rgba(18, 22, 31, 0.75) 65%);
+  --win-ctrl-hover: rgba(255, 255, 255, 0.08);
+  --win-ctrl-active: rgba(255, 255, 255, 0.14);
+  --win-ctrl-color: #94A3B8;
+  --scrollbar-thumb: rgba(255, 255, 255, 0.14);
+  --checkbox-bg: rgba(255, 255, 255, 0.08);
+  --checkbox-border: rgba(255, 255, 255, 0.22);
+}
+
+[data-theme="light"] {
+  --bg-sidebar: #F5F6F8;
+  --bg-master: #FAFAFB;
+  --bg-canvas: #FFFFFF;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F8F9FA;
+  --bg-dock: rgba(255, 255, 255, 0.92);
+  --border-hairline: #E5E7EB;
+  --border-subtle: #D1D5DB;
+  --card-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -6px rgba(15, 23, 42, 0.06);
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #64748B;
+  --accent-primary: #0284C7;
+  --accent-subtle: rgba(2, 132, 199, 0.08);
+  --accent-border: rgba(2, 132, 199, 0.30);
+  --hero-ambient: radial-gradient(circle at 15% 50%, rgba(2, 132, 199, 0.08) 0%, #FFFFFF 65%);
+  --win-ctrl-hover: rgba(15, 23, 42, 0.06);
+  --win-ctrl-active: rgba(15, 23, 42, 0.12);
+  --win-ctrl-color: #475569;
+  --scrollbar-thumb: rgba(15, 23, 42, 0.18);
+  --checkbox-bg: #FFFFFF;
+  --checkbox-border: #D1D5DB;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: transparent;
+  color: var(--text-primary);
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: color 0.25s ease;
+}
+
+/* Glass & Bevel utilities */
+.glass-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-hairline);
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.glass-hero {
+  background: var(--hero-ambient);
+  border: 1px solid var(--border-hairline);
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.glass-card-hover {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card-hover:hover {
+  border-color: var(--border-subtle);
+}
+
+/* Electric blue gradient CTA button */
+.btn-electric {
+  background: linear-gradient(180deg, #2596FF 0%, #0066CC 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 20px rgba(37, 150, 255, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-electric:hover {
+  background: linear-gradient(180deg, #3AA2FF 0%, #0073E6 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 26px rgba(37, 150, 255, 0.5);
+  transform: translateY(-1px);
+}
+
+.btn-electric:active {
+  transform: translateY(0);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 0 12px rgba(37, 150, 255, 0.3);
+}
+
+/* Monospace font for technical numbers, hashes, and paths */
+.mono-num {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Native Windows window control buttons */
+.win-ctrl-btn {
+  width: 44px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--win-ctrl-color);
+  background: transparent;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.win-ctrl-btn:hover {
+  background-color: var(--win-ctrl-hover);
+  color: var(--text-primary);
+}
+
+.win-ctrl-btn:active {
+  background-color: var(--win-ctrl-active);
+}
+
+.win-ctrl-close:hover {
+  background-color: #E81123 !important;
+  color: #FFFFFF !important;
+}
+
+.win-ctrl-close:active {
+  background-color: #C4101F !important;
+}
+
+/* Custom smooth scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary);
+}
+
+/* GPU Accelerated transitions */
+.gpu-layer {
+  transform: translateZ(0);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+.ease-apple {
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes scaleIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.97) translateY(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.pulse-dot {
+  animation: pulseGlow 2.5s infinite ease-in-out;
+}
+
+/* Rounded Apple checkbox */
+.apple-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background-color: var(--checkbox-bg);
+  border: 1px solid var(--checkbox-border);
+  cursor: pointer;
+  display: grid;
+  place-content: center;
+  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+
+.apple-checkbox:hover {
+  border-color: var(--accent-primary);
+  background-color: var(--accent-subtle);
+}
+
+.apple-checkbox:checked {
+  background-color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.apple-checkbox:checked::before {
+  content: "";
+  width: 9px;
+  height: 5px;
+  border-left: 2px solid #FFFFFF;
+  border-bottom: 2px solid #FFFFFF;
+  transform: rotate(-45deg) translate(0.5px, -1px);
+}
+
+.apple-checkbox:indeterminate {
+  background-color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.apple-checkbox:indeterminate::before {
+  content: "";
+  width: 8px;
+  height: 2px;
+  background-color: #FFFFFF;
+  border-radius: 1px;
+}
