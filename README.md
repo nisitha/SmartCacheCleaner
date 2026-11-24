@@ -1,104 +1,172 @@
-# SmartCacheCleaner
+<div align="center">
 
-> High-performance, Zero-Trust Windows cache cleaner and large file utility engineered with Tauri v2, Rust, and modern React.
+# SmartCacheCleaner `v1.1.0`
 
-Developed by **[Pixel Craft Studios](https://www.pixelcraftlk.com)**  
-Direct Support (WhatsApp): **+94 78 767 6576**
+### Zero-Trust, High-Speed Windows Cache & Junk Cleaner
 
----
+[![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-0078D4?style=flat-square&logo=windows&logoColor=white)](https://github.com/nisitha/SmartCacheCleaner)
+[![Architecture](https://img.shields.io/badge/Architecture-Zero--Trust%20Offline-10B981?style=flat-square&logo=shield&logoColor=white)](https://github.com/nisitha/SmartCacheCleaner)
+[![Built With](https://img.shields.io/badge/Built%20With-Tauri%20v2%20%2B%20Rust-F97316?style=flat-square&logo=rust&logoColor=white)](https://v2.tauri.app)
+[![License](https://img.shields.io/badge/License-MIT-38BDF8?style=flat-square)](LICENSE)
 
-## Overview
+**Engineered by [Pixel Craft Studios](https://www.pixelcraftlk.com)**
 
-SmartCacheCleaner is a commercial-grade desktop utility designed for Windows 10 & 11. Unlike traditional cleaners that rely on risky scripts or black-box wipers, SmartCacheCleaner runs a kernel-aware, zero-trust filesystem engine written in Rust. It eliminates bloated application caches without endangering system stability, personal documents, or browser credentials.
+<br/>
 
----
+[![Download SmartCacheCleaner](https://img.shields.io/badge/%E2%AC%87%EF%B8%8F_Download_Latest_Release-SmartCacheCleaner.exe-0284C7?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/nisitha/SmartCacheCleaner/releases/latest)
 
-## Core Capabilities
+<br/>
+<br/>
 
-### 1. Zero-Trust Security Engine (Rust)
-- **Strict Allowlist Verification:** Cleaning targets are validated against an immutable category allowlist. Critical operating system directories, desktop items, personal documents, and credential databases are hard-blocked at the kernel evaluation stage.
-- **Symlink & Junction Defense:** Automatically detects and halts traversal across Windows NTFS Reparse Points (`FILE_ATTRIBUTE_REPARSE_POINT` / `0x400`), defending against directory traversal and junction attacks.
-- **Recycle Bin Safe Mode:** By default, items are sent to the Windows Recycle Bin for safe recovery, with an optional permanent deletion mode for low-storage scenarios.
-- **Tamper-Evident Audit Logging:** Cleaning sessions are logged locally to `%LOCALAPPDATA%\SmartCacheCleaner\audit.log`.
+![SmartCacheCleaner Dashboard Light](docs/screenshots/dashboard-light.png)
 
-### 2. Comprehensive Cache Targets
-- **System & Windows:** Windows Temp (`C:\Windows\Temp`), SoftwareDistribution download cache, and crash dump memory files.
-- **User Environment:** `%LOCALAPPDATA%\Temp`, thumbnail caches, and error reporting logs.
-- **Web Browsers:** Google Chrome, Microsoft Edge, Brave, and Mozilla Firefox (Code Cache, GPU Cache, Media Cache).
-- **GPU & Gaming Shaders:** DirectX shader cache, NVIDIA DXCache/GLCache, and AMD D3DSCache.
-- **Social & Creative Media:**
-  - WhatsApp Desktop (`LocalCache`, `TempState`)
-  - Telegram Desktop media cache (`tdata\user_data\cache` & `media_cache` strictly; root authentication sessions are never touched)
-  - CapCut desktop caches & logs
-  - Adobe Creative Cloud Common Media Cache files
-- **Developer Caches:** npm, yarn, pip, Cargo target caches, Gradle, and Android build caches.
-
-### 3. Large Files Finder
-- Locates space-consuming files across user folders (`Downloads`, `Desktop`, `Documents`, `Videos`).
-- Dynamic threshold filters: `> 100 MB`, `> 250 MB`, `> 500 MB`, and `> 1 GB`.
-- Categorized extension badges (`.ISO`, `.ZIP`, `.MP4`, `.VHD`, etc.).
-- Direct integration with Windows Explorer via one-click file reveal.
-- Safe deletion with Recycle Bin fallback.
-
-### 4. Commercial Dual-Theme Experience
-- **Porcelain Light & Obsidian Dark:** High-contrast, clean UI inspired by Linear and Raycast design aesthetics.
-- **Time-Based Automated Scheduling:** Automatically shifts themes based on daytime hours (6:00 AM – 6:00 PM) or locks to manual selection.
-- **Native Frosted Transparency:** Utilizes Windows DWM glass effects and custom caption controls.
+</div>
 
 ---
 
-## Technology Architecture
+## Dual-Theme Visual Experience
 
-- **Backend:** [Tauri v2](https://v2.tauri.app/), Rust 2021 Edition, Windows API crate (`windows-sys` / `windows`)
-- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS v4, Lucide React
-- **Typography:** Offline bundled `@fontsource/plus-jakarta-sans` and `@fontsource/jetbrains-mono`
-- **Security:** Offline execution with zero external network tracking or telemetry
+SmartCacheCleaner comes with two commercial-grade workspace themes inspired by Linear, Raycast, and CleanMyMac. An intelligent time engine switches automatically between **Porcelain Light** (6:00 AM – 6:00 PM) and **Obsidian Dark** (6:00 PM – 6:00 AM), with instant manual override via the sidebar pill.
+
+| Porcelain Light Mode (Default) | Obsidian Dark Mode |
+| :---: | :---: |
+| <img src="docs/screenshots/dashboard-light.png" width="100%" alt="Porcelain Light Mode" /> | <img src="docs/screenshots/dashboard-dark.png" width="100%" alt="Obsidian Dark Mode" /> |
+| Crisp high-contrast canvas with frosted glass bevels | Deep obsidian slate optimized for evening low-light sessions |
 
 ---
 
-## Building from Source
+## Step-by-Step PC & Laptop Cache Cleaning Demo Guide
+
+Follow this simple walkthrough to reclaim gigabytes of bloated temporary junk safely in under 30 seconds.
+
+### Step 1: Instant Zero-Trust Scan
+- Run `SmartCacheCleaner.exe` directly — zero installer required, 100% portable.
+- In approximately **2–3 seconds**, the Rust engine audits seven universal cache zones:
+  1. **User Temp & App Data** (`%LOCALAPPDATA%\Temp`, WER reporting, Cryptnet cache)
+  2. **System Temp & Updates** (`C:\Windows\Temp`, SoftwareDistribution download cache)
+  3. **Web Browser Caches** (Google Chrome, Microsoft Edge, Brave, Mozilla Firefox)
+  4. **GPU & Shader Cache** (DirectX, NVIDIA DXCache/GLCache, AMD D3DSCache)
+  5. **Social & Creative Media** (WhatsApp Desktop, Telegram media, CapCut, Adobe CC)
+  6. **App & Dev Caches** (npm, pip, Cargo registry, Gradle)
+  7. **Crash Dumps & Error Logs** (Memory minidumps, WER error reports)
+
+---
+
+### Step 2: Review & Inspect Cache Categories
+- Click **Clean** in the left sidebar to enter the focused 3-column triage pane.
+- Review granular sub-items, exact folder paths, file counts, and recoverable disk space.
+- Uncheck any specific sub-item or click **Select Safe All** to highlight all standard-user caches.
+
+<div align="center">
+
+![SmartCacheCleaner Clean View](docs/screenshots/clean-caches.png)
+
+</div>
+
+---
+
+### Step 3: One-Click Safe Cleanup (Recycle Bin Protection)
+- Click **Clean Selected** or **Clean All Safe** in the floating bottom dock.
+- **Recycle Bin Safe Mode** is active by default: cleaned cache files are moved to the Windows Recycle Bin first, allowing recovery if needed.
+- For maximum disk clearance on constrained SSDs, toggle **Permanent Deletion** in Preferences.
+- Every cleaning session records a tamper-evident entry in the **Audit Log** (`%LOCALAPPDATA%\SmartCacheCleaner\audit.log`).
+
+---
+
+### Step 4: Optional Admin Elevation for Windows Update Cache
+- Operating system level folders like `C:\Windows\Temp` and `C:\Windows\SoftwareDistribution\Download` require administrator access.
+- Click the **Elevate** button on the Dashboard or Preferences screen to trigger the Windows UAC prompt.
+- SmartCacheCleaner seamlessly relaunches elevated with admin rights so you can safely purge gigabytes of stale Windows Update installation packages.
+
+---
+
+### Step 5: Reclaim Extra Space with Large File Finder
+- Click **Large Files** in the workspace sidebar.
+- Filter space hogs across your **Downloads**, **Desktop**, **Documents**, and **Videos** folders using four dynamic size thresholds:
+  - `> 100 MB`
+  - `> 250 MB` (Default)
+  - `> 500 MB`
+  - `> 1 GB`
+- Click the folder icon (**FolderOpen**) on any item to reveal and highlight the exact file in Windows Explorer.
+- Select forgotten `.iso` disk images, massive video footage, `.zip` archives, or obsolete `.exe` installers, and send them to the Recycle Bin with one click.
+
+<div align="center">
+
+![Large Files Finder](docs/screenshots/large-files.png)
+
+</div>
+
+---
+
+## 100% Safe by Design (Zero-Trust Guarantee)
+
+SmartCacheCleaner was engineered from the ground up to prevent accidental data loss:
+
+- **Personal Data Hard-Block:** Kernel-level path validators strictly block access to personal documents, photos, desktop shortcuts, and code repos (`Documents`, `Desktop`, `Pictures`, `Music`, `Videos` are never touched during cache cleaning).
+- **Credential Protection:** Browser user credentials (`Login Data`, `Cookies`, `Web Data`, `Bookmarks`, `History`) are strictly excluded from scanning and deletion.
+- **Telegram Session Security:** Telegram media scans exclusively target `tdata\user_data\cache` and `media_cache`. The root `tdata` authentication keys and active sessions are strictly blocked.
+- **NTFS Reparse-Point / Junction Trap Defense:** Before evaluating or deleting any file or folder, the scanner checks the Win32 `FILE_ATTRIBUTE_REPARSE_POINT` (0x400) attribute. Directory traversal across NTFS junctions and symbolic links is halted immediately.
+- **100% Offline & Private:** Zero telemetry, zero cloud trackers, and zero background network requests. The binary executes entirely offline.
+
+---
+
+## Technology Stack
+
+| Layer | Component | Description |
+| :--- | :--- | :--- |
+| **Desktop Shell** | [Tauri v2](https://v2.tauri.app/) | Lightweight native desktop wrapper utilizing Microsoft Edge WebView2 |
+| **System Engine** | [Rust 2021](https://www.rust-lang.org/) | High-concurrency safe filesystem scanner and Windows API controller |
+| **Frontend UI** | React 19 + TypeScript | Modular, type-safe interface with zero Unicode emoji dependencies |
+| **Styling** | Tailwind CSS v4 | High-performance CSS engine with custom DWM glass & bevel tokens |
+| **Icons** | [Lucide React](https://lucide.dev/) | Consistent 1.75 stroke-width vector iconography |
+| **Typography** | Fontsource | Bundled offline fonts: Plus Jakarta Sans (UI) & JetBrains Mono (metrics) |
+
+---
+
+## Local Compilation & Build Instructions
 
 ### Prerequisites
-1. **Node.js** (v18 or newer)
-2. **Rust & Cargo** (stable toolchain with `x86_64-pc-windows-msvc` target)
-3. **Microsoft C++ Build Tools** (Visual Studio 2022 with Desktop development with C++)
+- [Node.js](https://nodejs.org/) (v18.x or v20.x recommended)
+- [Rust & Cargo](https://rustup.rs/) (stable `x86_64-pc-windows-msvc`)
+- Visual Studio 2022 with **Desktop development with C++**
 
-### Installation & Development Run
+### Clone & Install
 ```powershell
-# Clone the repository
-git clone https://github.com/PixelCraftStudios/SmartCacheCleaner.git
+git clone https://github.com/nisitha/SmartCacheCleaner.git
 cd SmartCacheCleaner
-
-# Install frontend dependencies
 npm install
+```
 
-# Launch development environment (hot-reload frontend + Rust debug backend)
+### Run in Development
+```powershell
 npm run tauri dev
 ```
 
-### Production Release Compilation
+### Production Build
 ```powershell
-# Run backend test suite
+# Run security test suite
 cargo test --manifest-path src-tauri/Cargo.toml
 
-# Compile optimized Windows release binary and NSIS/MSI installers
+# Compile release executable and installer
 npm run tauri build
 ```
-Compiled artifacts are located in:
-- Executable: `src-tauri/target/release/SmartCacheCleaner.exe`
-- Installer: `src-tauri/target/release/bundle/nsis/SmartCacheCleaner_0.1.0_x64-setup.exe`
+
+Binary outputs:
+- **Portable Executable:** `src-tauri/target/release/SmartCacheCleaner.exe`
+- **Windows Setup Installer:** `src-tauri/target/release/bundle/nsis/SmartCacheCleaner_0.1.0_x64-setup.exe`
 
 ---
 
 ## License
 
-Distributed under the MIT License. See [LICENSE](LICENSE) for details.
+This project is licensed under the [MIT License](LICENSE) — see the LICENSE file for details.
 
 ---
 
-## Publisher
+## Publisher & Commercial Support
 
 **Pixel Craft Studios**  
-Website: [www.pixelcraftlk.com](https://www.pixelcraftlk.com)  
-Contact: +94 78 767 6576  
-Colombo, Sri Lanka
+Colombo, Sri Lanka  
+- **Official Website:** [www.pixelcraftlk.com](https://www.pixelcraftlk.com)  
+- **Direct WhatsApp Support:** [+94 78 767 6576](https://wa.me/94787676576)  
+- **Commercial Inquiries:** contact@pixelcraftlk.com  
