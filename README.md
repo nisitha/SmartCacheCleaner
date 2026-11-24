@@ -13,7 +13,9 @@
 
 <br/>
 
-[![Download SmartCacheCleaner](https://img.shields.io/badge/%E2%AC%87%EF%B8%8F_Download_Latest_Release-SmartCacheCleaner.exe-0284C7?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/nisitha/SmartCacheCleaner/releases/latest)
+[![Direct Download Portable](https://img.shields.io/badge/%E2%AC%87%EF%B8%8F_Direct_Download-SmartCacheCleaner.exe_(Portable)-0284C7?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/nisitha/SmartCacheCleaner/releases/latest/download/SmartCacheCleaner.exe)
+&nbsp;
+[![Download Windows Installer](https://img.shields.io/badge/%E2%AC%87%EF%B8%8F_Download_Installer-Setup.exe-10B981?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/nisitha/SmartCacheCleaner/releases/latest/download/SmartCacheCleaner_0.1.0_x64-setup.exe)
 
 <br/>
 <br/>
