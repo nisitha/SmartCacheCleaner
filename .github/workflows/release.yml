@@ -1,0 +1,87 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  build-and-release:
+    name: Build & Release Windows Binaries
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Setup Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify Zero-Trust security tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Build Tauri production binaries
+        run: npm run tauri build
+
+      - name: Stage unsigned binaries
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release-unsigned
+          Copy-Item src-tauri/target/release/SmartCacheCleaner.exe release-unsigned/
+          Copy-Item src-tauri/target/release/bundle/nsis/SmartCacheCleaner_*_x64-setup.exe release-unsigned/
+          Get-ChildItem release-unsigned
+
+      - name: Upload unsigned artifacts
+        id: upload-unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-unsigned
+          path: release-unsigned/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Submit SignPath signing request
+        id: signpath
+        if: ${{ secrets.SIGNPATH_API_TOKEN != '' }}
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'SmartCacheCleaner' }}
+          signing-policy-slug: 'release-signing'
+          github-artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: 'release-signed'
+
+      - name: Select release artifacts
+        id: select-artifacts
+        shell: pwsh
+        run: |
+          if (Test-Path "release-signed") {
+            Write-Host "Publishing SignPath signed binaries from release-signed/"
+            "DIR=release-signed" >> $env:GITHUB_ENV
+          } else {
+            Write-Host "Publishing binaries fallback from release-unsigned/"
+            "DIR=release-unsigned" >> $env:GITHUB_ENV
+          }
+
+      - name: Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ env.DIR }}/*.exe
+          generate_release_notes: true
