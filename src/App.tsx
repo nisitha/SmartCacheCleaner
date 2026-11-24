@@ -1,7 +1,16 @@
 import { useState, useEffect, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { listen } from "@tauri-apps/api/event";
 import "./App.css";
+
+interface OperationProgress {
+  mode: "scanning" | "cleaning" | "idle";
+  current_label: string;
+  processed: number;
+  total: number;
+  percent: number;
+}
 import {
   LayoutDashboard,
   Sparkles,
@@ -201,6 +210,13 @@ export default function App() {
   const [showLargeFilesConfirmModal, setShowLargeFilesConfirmModal] = useState<boolean>(false);
   const [largeFilesScanTimeMs, setLargeFilesScanTimeMs] = useState<number>(0);
 
+  // Manual Scan & Real-Time Progress State
+  const [hasScannedCaches, setHasScannedCaches] = useState<boolean>(false);
+  const [hasScannedLargeFiles, setHasScannedLargeFiles] = useState<boolean>(false);
+  const [progress, setProgress] = useState<OperationProgress | null>(null);
+
+  const isOperating = isScanning || isCleaning || isScanningLargeFiles || isDeletingLargeFiles;
+
   function copyToClipboard(key: string, text: string) {
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
@@ -237,10 +253,26 @@ export default function App() {
     return () => clearInterval(timer);
   }, [themeMode]);
 
-  // Initial Scan & Elevation Check
+  // Real-Time Progress Listener
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    listen<OperationProgress>("operation-progress", (event) => {
+      setProgress(event.payload);
+      if (event.payload.mode === "idle") {
+        setTimeout(() => setProgress(null), 900);
+      }
+    }).then((fn) => {
+      unlisten = fn;
+    });
+
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, []);
+
+  // Initial Check (No Auto-Scan on Launch)
   useEffect(() => {
     checkElevation();
-    handleScan();
     loadAuditLogs();
   }, []);
 
@@ -270,12 +302,21 @@ export default function App() {
     }
   }
 
+  async function handleCancelOperation() {
+    try {
+      await invoke("cancel_current_operation");
+    } catch (err) {
+      console.error("Failed to cancel operation:", err);
+    }
+  }
+
   async function handleScan() {
     setIsScanning(true);
     const start = performance.now();
     try {
       const results = await invoke<CategoryScanResult[]>("scan_all_caches");
       setCategories(results);
+      setHasScannedCaches(true);
       setScanDurationMs(Math.round(performance.now() - start));
 
       // Auto-select all discovered sub-items by default
@@ -341,6 +382,7 @@ export default function App() {
       setLargeFiles(results);
       setLargeFilesScanTimeMs(Math.round(performance.now() - start));
       setSelectedLargeFiles(new Set());
+      setHasScannedLargeFiles(true);
     } catch (err) {
       console.error("Failed to scan large files:", err);
     } finally {
@@ -413,12 +455,6 @@ export default function App() {
     }
   }
 
-  // Trigger scan when opening large files view if not yet scanned
-  useEffect(() => {
-    if (activeView === "large_files" && largeFiles.length === 0 && !isScanningLargeFiles) {
-      handleScanLargeFiles(largeFileSizeThresholdMb);
-    }
-  }, [activeView]);
 
   function getExtensionBadgeColor(ext: string): { bg: string; text: string; border: string } {
     const e = ext.toLowerCase().replace(/^\./, "");
@@ -870,7 +906,7 @@ export default function App() {
 
             <button
               onClick={handleScan}
-              disabled={isScanning || isCleaning}
+              disabled={isOperating}
               className="h-[28px] px-3 mr-2 rounded-md text-[12px] font-medium border border-[var(--border-hairline)] bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
             >
               <RefreshCw
@@ -938,7 +974,7 @@ export default function App() {
                   </span>
 
                   {(() => {
-                    const { value, unit } = splitBytes(totalDiscoveredBytes);
+                    const { value, unit } = splitBytes(hasScannedCaches ? totalDiscoveredBytes : 0);
                     return (
                       <div className="flex items-baseline gap-2.5">
                         <span className="text-[48px] font-bold mono-num text-[var(--text-primary)] leading-none tracking-[-0.04em]">
@@ -953,22 +989,28 @@ export default function App() {
 
                   {/* Proportional Multi-Color Micro-Bar */}
                   <div className="h-[6px] w-full max-w-[340px] rounded-full flex gap-[2px] overflow-hidden bg-black/10 dark:bg-white/10 mt-3">
-                    {categories.map((c, i) => {
-                      const pct = totalDiscoveredBytes > 0 ? (c.size_bytes / totalDiscoveredBytes) * 100 : 0;
-                      if (pct === 0) return null;
-                      return (
-                        <div
-                          key={c.id}
-                          style={{ width: `${pct}%` }}
-                          className={`h-full ${getCategoryColor(c.id, i)} transition-all duration-300`}
-                          title={`${c.name}: ${formatBytes(c.size_bytes)} (${pct.toFixed(1)}%)`}
-                        />
-                      );
-                    })}
+                    {hasScannedCaches ? (
+                      categories.map((c, i) => {
+                        const pct = totalDiscoveredBytes > 0 ? (c.size_bytes / totalDiscoveredBytes) * 100 : 0;
+                        if (pct === 0) return null;
+                        return (
+                          <div
+                            key={c.id}
+                            style={{ width: `${pct}%` }}
+                            className={`h-full ${getCategoryColor(c.id, i)} transition-all duration-300`}
+                            title={`${c.name}: ${formatBytes(c.size_bytes)} (${pct.toFixed(1)}%)`}
+                          />
+                        );
+                      })
+                    ) : (
+                      <div className="h-full w-full bg-transparent" />
+                    )}
                   </div>
 
                   <p className="text-xs text-[var(--text-muted)] pt-1">
-                    Across {categories.length} universal system targets • {totalDiscoveredFiles.toLocaleString()} files detected
+                    {hasScannedCaches
+                      ? `Across ${categories.length} universal system targets • ${totalDiscoveredFiles.toLocaleString()} files detected`
+                      : "No scan performed yet • Click 'Start Smart Scan' to analyze system junk"}
                   </p>
                 </div>
 
@@ -993,7 +1035,7 @@ export default function App() {
                         stroke="#0EA5E9"
                         strokeWidth="6"
                         strokeDasharray={188.5}
-                        strokeDashoffset={totalDiscoveredBytes > 0 ? 30 : 188.5}
+                        strokeDashoffset={hasScannedCaches && totalDiscoveredBytes > 0 ? 30 : 188.5}
                         strokeLinecap="round"
                         fill="transparent"
                         className="transition-all duration-700 ease-apple"
@@ -1001,22 +1043,34 @@ export default function App() {
                     </svg>
                     <div className="absolute flex flex-col items-center justify-center text-center">
                       <span className="text-xs font-bold mono-num text-[var(--text-primary)]">
-                        {totalDiscoveredBytes > 0 ? "100%" : "0%"}
+                        {hasScannedCaches && totalDiscoveredBytes > 0 ? "100%" : "0%"}
                       </span>
-                      <span className="text-[9px] text-[var(--text-muted)] font-medium">Ready</span>
+                      <span className="text-[9px] text-[var(--text-muted)] font-medium">
+                        {hasScannedCaches ? "Ready" : "Ready to Scan"}
+                      </span>
                     </div>
                   </div>
 
                   {/* Primary CTA Button */}
                   <button
                     onClick={() => {
-                      setActiveView("clean");
-                      handleScan();
+                      if (!hasScannedCaches) {
+                        handleScan();
+                      } else {
+                        setActiveView("clean");
+                      }
                     }}
-                    className="px-6 py-3.5 rounded-xl font-semibold text-xs text-white btn-electric flex items-center gap-2 cursor-pointer shadow-lg select-none"
+                    disabled={isOperating}
+                    className="px-6 py-3.5 rounded-xl font-semibold text-xs text-white btn-electric flex items-center gap-2 cursor-pointer shadow-lg select-none disabled:opacity-50"
                   >
                     <Sparkles size={15} strokeWidth={2} />
-                    <span>Smart Scan & Clean</span>
+                    <span>
+                      {isScanning
+                        ? "Scanning..."
+                        : hasScannedCaches
+                        ? "Review & Clean Caches"
+                        : "Start Smart Scan"}
+                    </span>
                   </button>
                 </div>
               </div>
@@ -1102,67 +1156,92 @@ export default function App() {
 
                 {/* Table Body */}
                 <div className="divide-y divide-[var(--border-hairline)]">
-                  {categories
-                    .filter((c) => c.size_bytes > 0)
-                    .sort((a, b) => b.size_bytes - a.size_bytes)
-                    .slice(0, 6)
-                    .map((cat) => {
-                      const pct = totalDiscoveredBytes > 0 ? (cat.size_bytes / totalDiscoveredBytes) * 100 : 0;
-                      return (
-                        <div
-                          key={cat.id}
-                          onClick={() => {
-                            setSelectedCategory(cat.id);
-                            setActiveView("clean");
-                          }}
-                          className="grid grid-cols-12 items-center px-4 h-[48px] hover:bg-[var(--bg-card-hover)] cursor-pointer transition-colors group"
+                  {categories.filter((c) => c.size_bytes > 0).length === 0 ? (
+                    <div className="py-12 flex flex-col items-center justify-center text-center">
+                      <div className="w-10 h-10 rounded-xl bg-[var(--accent-subtle)] border border-[var(--accent-border)] flex items-center justify-center text-[var(--accent-primary)] mb-2.5">
+                        <Sparkles size={20} strokeWidth={1.75} />
+                      </div>
+                      <span className="text-xs font-semibold text-[var(--text-primary)]">
+                        {hasScannedCaches ? "System Clean • No Junk Detected" : "No Cache Data Available"}
+                      </span>
+                      <span className="text-[11px] text-[var(--text-muted)] mt-1 max-w-sm">
+                        {hasScannedCaches
+                          ? "All universal system targets are currently clean."
+                          : "No Cache Data Available • Click Start Smart Scan to analyze system and application caches."}
+                      </span>
+                      {!hasScannedCaches && !isScanning && (
+                        <button
+                          onClick={handleScan}
+                          disabled={isOperating}
+                          className="mt-3.5 px-4 py-2 rounded-lg text-xs font-semibold btn-electric text-white cursor-pointer disabled:opacity-50"
                         >
-                          {/* Col 1: Icon + Name */}
-                          <div className="col-span-5 flex items-center gap-3 min-w-0 pr-2">
-                            <div
-                              className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border ${getCategorySquircleBg(
-                                cat.id
-                              )}`}
-                            >
-                              {getCategoryIcon(cat.id)}
-                            </div>
-                            <span className="text-xs font-medium text-[var(--text-primary)] truncate">
-                              {getCategoryShortName(cat.id, cat.name)}
-                            </span>
-                          </div>
-
-                          {/* Col 2: Items count */}
-                          <div className="col-span-3 text-xs text-[var(--text-secondary)] mono-num">
-                            {cat.sub_items.length} {cat.sub_items.length === 1 ? "target" : "targets"} ({cat.file_count.toLocaleString()} files)
-                          </div>
-
-                          {/* Col 3: Progress Bar + Percent */}
-                          <div className="col-span-2 flex items-center justify-end gap-2 pr-2">
-                            <div className="w-[72px] h-[4px] bg-black/10 dark:bg-white/10 rounded-full overflow-hidden shrink-0">
+                          Start Smart Scan
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    categories
+                      .filter((c) => c.size_bytes > 0)
+                      .sort((a, b) => b.size_bytes - a.size_bytes)
+                      .slice(0, 6)
+                      .map((cat) => {
+                        const pct = totalDiscoveredBytes > 0 ? (cat.size_bytes / totalDiscoveredBytes) * 100 : 0;
+                        return (
+                          <div
+                            key={cat.id}
+                            onClick={() => {
+                              setSelectedCategory(cat.id);
+                              setActiveView("clean");
+                            }}
+                            className="grid grid-cols-12 items-center px-4 h-[48px] hover:bg-[var(--bg-card-hover)] cursor-pointer transition-colors group"
+                          >
+                            {/* Col 1: Icon + Name */}
+                            <div className="col-span-5 flex items-center gap-3 min-w-0 pr-2">
                               <div
-                                className="h-full bg-[var(--accent-primary)] rounded-full transition-all duration-300"
-                                style={{ width: `${Math.min(pct, 100)}%` }}
+                                className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border ${getCategorySquircleBg(
+                                  cat.id
+                                )}`}
+                              >
+                                {getCategoryIcon(cat.id)}
+                              </div>
+                              <span className="text-xs font-medium text-[var(--text-primary)] truncate">
+                                {getCategoryShortName(cat.id, cat.name)}
+                              </span>
+                            </div>
+
+                            {/* Col 2: Items count */}
+                            <div className="col-span-3 text-xs text-[var(--text-secondary)] mono-num">
+                              {cat.sub_items.length} {cat.sub_items.length === 1 ? "target" : "targets"} ({cat.file_count.toLocaleString()} files)
+                            </div>
+
+                            {/* Col 3: Progress Bar + Percent */}
+                            <div className="col-span-2 flex items-center justify-end gap-2 pr-2">
+                              <div className="w-[72px] h-[4px] bg-black/10 dark:bg-white/10 rounded-full overflow-hidden shrink-0">
+                                <div
+                                  className="h-full bg-[var(--accent-primary)] rounded-full transition-all duration-300"
+                                  style={{ width: `${Math.min(pct, 100)}%` }}
+                                />
+                              </div>
+                              <span className="text-[11px] text-[var(--text-muted)] mono-num w-8 text-right">
+                                {pct.toFixed(0)}%
+                              </span>
+                            </div>
+
+                            {/* Col 4: Recoverable Size + Arrow */}
+                            <div className="col-span-2 flex items-center justify-end gap-2 text-right">
+                              <span className="text-xs font-semibold text-[var(--text-primary)] mono-num tabular-nums">
+                                {formatBytes(cat.size_bytes)}
+                              </span>
+                              <ChevronRight
+                                size={14}
+                                strokeWidth={1.75}
+                                className="text-[var(--text-muted)] group-hover:translate-x-0.5 transition-transform"
                               />
                             </div>
-                            <span className="text-[11px] text-[var(--text-muted)] mono-num w-8 text-right">
-                              {pct.toFixed(0)}%
-                            </span>
                           </div>
-
-                          {/* Col 4: Recoverable Size + Arrow */}
-                          <div className="col-span-2 flex items-center justify-end gap-2 text-right">
-                            <span className="text-xs font-semibold text-[var(--text-primary)] mono-num tabular-nums">
-                              {formatBytes(cat.size_bytes)}
-                            </span>
-                            <ChevronRight
-                              size={14}
-                              strokeWidth={1.75}
-                              className="text-[var(--text-muted)] group-hover:translate-x-0.5 transition-transform"
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })
+                  )}
                 </div>
               </div>
             </div>
@@ -1170,6 +1249,25 @@ export default function App() {
 
           {/* VIEW: CLEAN (3-Column Layout: Middle Master + Right Detail) */}
           {activeView === "clean" && (
+            categories.length === 0 && !isScanning ? (
+              <div className="h-full flex-1 flex flex-col items-center justify-center p-8 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-[var(--accent-subtle)] border border-[var(--accent-border)] flex items-center justify-center text-[var(--accent-primary)] mb-4 shadow-sm">
+                  <Sparkles size={32} strokeWidth={1.75} />
+                </div>
+                <h2 className="text-base font-bold text-[var(--text-primary)]">Ready to Scan Caches</h2>
+                <p className="text-xs text-[var(--text-muted)] mt-1.5 max-w-md leading-relaxed">
+                  Analyze system temporary files, browser caches, social & creative media caches, and crash dumps with zero-trust safety.
+                </p>
+                <button
+                  onClick={handleScan}
+                  disabled={isOperating}
+                  className="mt-5 px-6 py-3 rounded-xl text-xs font-semibold btn-electric text-white shadow-lg cursor-pointer flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Sparkles size={15} strokeWidth={2} />
+                  <span>Scan Caches Now</span>
+                </button>
+              </div>
+            ) : (
             <div className="h-full flex overflow-hidden">
               {/* MIDDLE MASTER PANE (315px) */}
               <div className="w-[315px] shrink-0 flex flex-col border-r border-[var(--border-hairline)] bg-[var(--bg-master)]">
@@ -1376,14 +1474,15 @@ export default function App() {
 
                         <button
                           onClick={handleSelectSafeAll}
-                          className="h-[34px] px-3.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-hairline)] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                          disabled={isOperating}
+                          className="h-[34px] px-3.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-hairline)] transition-colors whitespace-nowrap shrink-0 cursor-pointer disabled:opacity-50"
                         >
                           Select Safe All
                         </button>
 
                         <button
                           onClick={() => setShowConfirmModal(true)}
-                          disabled={totalSelectedBytes === 0 || isCleaning}
+                          disabled={totalSelectedBytes === 0 || isOperating}
                           className="h-[34px] px-4 rounded-lg text-xs font-semibold btn-electric text-white shadow-sm transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
                         >
                           <Sparkles size={14} strokeWidth={2} />
@@ -1399,6 +1498,7 @@ export default function App() {
                 )}
               </div>
             </div>
+            )
           )}
 
           {/* VIEW: STORAGE */}
@@ -1550,11 +1650,12 @@ export default function App() {
                       return (
                         <button
                           key={thresh}
+                          disabled={isOperating}
                           onClick={() => {
                             setLargeFileSizeThresholdMb(thresh);
                             handleScanLargeFiles(thresh);
                           }}
-                          className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${
+                          className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer disabled:opacity-50 ${
                             active
                               ? "bg-[var(--accent-primary)] text-white shadow-sm"
                               : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)]"
@@ -1568,7 +1669,7 @@ export default function App() {
 
                   <button
                     onClick={() => handleScanLargeFiles(largeFileSizeThresholdMb)}
-                    disabled={isScanningLargeFiles}
+                    disabled={isOperating}
                     className="h-[30px] px-3 rounded-lg text-xs font-medium border border-[var(--border-hairline)] bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] text-[var(--text-primary)] transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
                   >
                     <RefreshCw
@@ -1592,6 +1693,24 @@ export default function App() {
                     <span className="text-xs text-[var(--text-muted)] mt-1">
                       Searching for files exceeding {largeFileSizeThresholdMb >= 1024 ? "1 GB" : `${largeFileSizeThresholdMb} MB`} in Downloads, Desktop, Documents, and Videos
                     </span>
+                  </div>
+                ) : !hasScannedLargeFiles ? (
+                  <div className="h-72 flex flex-col items-center justify-center text-center glass-card rounded-xl">
+                    <div className="w-12 h-12 rounded-xl bg-[var(--accent-subtle)] border border-[var(--accent-border)] flex items-center justify-center text-[var(--accent-primary)] mb-3">
+                      <FileSearch size={24} strokeWidth={1.75} />
+                    </div>
+                    <span className="text-sm font-bold text-[var(--text-primary)]">Large Files Finder Ready</span>
+                    <span className="text-xs text-[var(--text-muted)] mt-1 max-w-sm">
+                      Scan your user folders (Downloads, Desktop, Documents, Videos) for files exceeding {largeFileSizeThresholdMb >= 1024 ? "1 GB" : `${largeFileSizeThresholdMb} MB`}.
+                    </span>
+                    <button
+                      onClick={() => handleScanLargeFiles(largeFileSizeThresholdMb)}
+                      disabled={isOperating}
+                      className="mt-4 px-4 py-2 rounded-lg text-xs font-semibold btn-electric text-white cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <FileSearch size={14} strokeWidth={2} />
+                      <span>Scan Large Files</span>
+                    </button>
                   </div>
                 ) : largeFiles.length === 0 ? (
                   <div className="h-72 flex flex-col items-center justify-center text-center glass-card rounded-xl">
@@ -1742,7 +1861,7 @@ export default function App() {
 
                     <button
                       onClick={() => setShowLargeFilesConfirmModal(true)}
-                      disabled={selectedLargeFiles.size === 0 || isDeletingLargeFiles}
+                      disabled={selectedLargeFiles.size === 0 || isOperating}
                       className="px-4 py-1.5 rounded-lg text-xs font-semibold btn-electric text-white shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
                     >
                       <Trash2 size={13} strokeWidth={2} />
@@ -2238,6 +2357,67 @@ export default function App() {
                 {useRecycleBin ? "Move to Recycle Bin" : "Delete Permanently"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 7. LIVE OPERATION PROGRESS FLOATING CARD */}
+      {isOperating && (
+        <div className="fixed bottom-6 right-6 w-[400px] z-50 glass-card p-4 rounded-2xl shadow-2xl border border-[var(--border-subtle)] backdrop-blur-xl bg-[var(--bg-card)]/95">
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-[var(--accent-subtle)] border border-[var(--accent-border)] flex items-center justify-center shrink-0">
+                <RefreshCw size={15} className="animate-spin text-[var(--accent-primary)]" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs font-bold text-[var(--text-primary)] truncate block">
+                  {isScanning
+                    ? "Scanning System & App Caches..."
+                    : isCleaning
+                    ? "Cleaning Selected Caches..."
+                    : isScanningLargeFiles
+                    ? "Scanning Large Files..."
+                    : "Deleting Large Files..."}
+                </span>
+                <span className="text-[11px] text-[var(--text-muted)] truncate block mono-num">
+                  {progress?.current_label || "Running zero-trust operation..."}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={handleCancelOperation}
+              className="px-2.5 py-1 text-[11px] font-semibold rounded-md border border-rose-500/30 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 transition-all cursor-pointer shrink-0 ml-2"
+            >
+              Cancel
+            </button>
+          </div>
+
+          {/* Smooth Animated Progress Bar */}
+          <div className="w-full h-2 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden mb-2">
+            <div
+              className="h-full bg-gradient-to-r from-[var(--accent-primary)] to-[#10B981] transition-all duration-300 ease-out"
+              style={{
+                width: `${Math.max(5, Math.min(progress?.percent ?? 5, 100))}%`,
+              }}
+            />
+          </div>
+
+          {/* Counter Metrics */}
+          <div className="flex items-center justify-between text-[11px] mono-num tabular-nums text-[var(--text-muted)]">
+            <span>
+              {progress && progress.total > 0
+                ? `${progress.processed.toLocaleString()} / ${progress.total.toLocaleString()} ${
+                    isScanning ? "categories" : "files"
+                  }`
+                : isScanning
+                ? "Analyzing system targets..."
+                : isCleaning
+                ? "Processing deletion batches..."
+                : "Scanning directories..."}
+            </span>
+            <span className="font-semibold text-[var(--text-primary)]">
+              {progress?.percent !== undefined ? `${progress.percent}%` : ""}
+            </span>
           </div>
         </div>
       )}

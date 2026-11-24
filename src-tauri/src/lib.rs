@@ -26,6 +26,7 @@ pub fn run() {
             greet,
             cleaner::scan_all_caches,
             cleaner::clean_categories,
+            cleaner::cancel_current_operation,
             cleaner::get_audit_logs,
             cleaner::is_elevated_admin,
             cleaner::request_admin_elevation,
